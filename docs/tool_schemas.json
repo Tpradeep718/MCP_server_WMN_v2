@@ -1,0 +1,150 @@
+{
+  "tools": [
+    {
+      "name": "get_routing_table",
+      "description": "Returns the Linux IP routing table. Shows all routes including default gateway, Docker bridge, and local network routes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "destination": {"type": "string", "example": "default, 172.17.0.0/16, 192.168.0.0/16"},
+            "gateway":     {"type": "string", "example": "192.168.0.1"},
+            "dev":         {"type": "string", "example": "enp0s31f6, docker0"},
+            "proto":       {"type": "string", "example": "dhcp, kernel"},
+            "src":         {"type": "string", "example": "192.168.50.102"},
+            "metric":      {"type": "integer","example": 100},
+            "scope":       {"type": "string", "example": "link"},
+            "status":      {"type": "string", "example": "up, linkdown"}
+          }
+        }
+      },
+      "real_output_example": [
+        {"destination": "default",        "gateway": "192.168.0.1", "dev": "enp0s31f6", "proto": "dhcp",   "src": "192.168.50.102", "metric": 100, "status": "up"},
+        {"destination": "172.17.0.0/16",  "gateway": null,          "dev": "docker0",   "proto": "kernel", "src": "172.17.0.1",     "metric": null,"status": "linkdown"},
+        {"destination": "192.168.0.0/16", "gateway": null,          "dev": "enp0s31f6", "proto": "kernel", "src": "192.168.50.102", "metric": 100, "status": "up"}
+      ]
+    },
+    {
+      "name": "get_interface_stats",
+      "description": "Returns RX/TX statistics for all network interfaces on the mesh node.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "interface": {"type": "string", "description": "Optional — filter by interface name e.g. enp0s31f6"}
+        }
+      },
+      "outputSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "interface":   {"type": "string"},
+            "state":       {"type": "string", "example": "UP, DOWN, DORMANT"},
+            "mtu":         {"type": "integer"},
+            "rx_bytes":    {"type": "integer"},
+            "rx_packets":  {"type": "integer"},
+            "rx_errors":   {"type": "integer"},
+            "rx_dropped":  {"type": "integer"},
+            "tx_bytes":    {"type": "integer"},
+            "tx_packets":  {"type": "integer"},
+            "tx_errors":   {"type": "integer"}
+          }
+        }
+      }
+    },
+    {
+      "name": "get_interface_config",
+      "description": "Returns wireless configuration for all Wi-Fi interfaces including mode, ESSID, and channel.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "interface": {"type": "string", "description": "Optional — filter by interface name e.g. wlp4s0"}
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "interface":    {"type": "string", "example": "wlp4s0"},
+          "standard":     {"type": "string", "example": "IEEE 802.11"},
+          "essid":        {"type": "string", "example": "off/any"},
+          "mode":         {"type": "string", "example": "Managed, Mesh"},
+          "access_point": {"type": "string", "example": "Not-Associated"},
+          "tx_power":     {"type": "string"},
+          "channel":      {"type": "integer"}
+        }
+      }
+    },
+    {
+      "name": "list_neighbors",
+      "description": "Lists all batman-adv mesh neighbors visible from this node with last-seen time.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "interface": {"type": "string", "default": "bat0"}
+        }
+      },
+      "outputSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "neighbor_mac":       {"type": "string", "example": "aa:bb:cc:dd:ee:01"},
+            "outgoing_interface": {"type": "string", "example": "wlp4s0"},
+            "last_seen_seconds":  {"type": "number", "example": 0.392}
+          }
+        }
+      }
+    },
+    {
+      "name": "ping_neighbor",
+      "description": "Pings a mesh neighbor by IP and returns RTT and packet loss statistics.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["host"],
+        "properties": {
+          "host":  {"type": "string", "description": "IP address or hostname to ping"},
+          "count": {"type": "integer","default": 4, "description": "Number of ping packets"}
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "host":        {"type": "string"},
+          "transmitted": {"type": "integer"},
+          "received":    {"type": "integer"},
+          "loss_pct":    {"type": "number"},
+          "rtt_min_ms":  {"type": "number"},
+          "rtt_avg_ms":  {"type": "number"},
+          "rtt_max_ms":  {"type": "number"}
+        }
+      }
+    },
+    {
+      "name": "set_wifi_channel",
+      "description": "Changes the Wi-Fi channel on a mesh interface. Requires privilege token.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["interface", "channel", "token"],
+        "properties": {
+          "interface": {"type": "string", "example": "wlp4s0"},
+          "channel":   {"type": "integer","example": 6, "minimum": 1, "maximum": 13},
+          "token":     {"type": "string", "description": "Privilege token from server config"}
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success":          {"type": "boolean"},
+          "interface":        {"type": "string"},
+          "previous_channel": {"type": "integer"},
+          "new_channel":      {"type": "integer"}
+        }
+      }
+    }
+  ]
+}

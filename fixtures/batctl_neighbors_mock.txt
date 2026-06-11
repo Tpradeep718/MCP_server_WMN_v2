@@ -1,0 +1,4 @@
+[B.A.T.M.A.N. adv 2023.3, MainIF/MAC: wlp4s0/00:28:f8:e9:9b:3e (bat0 BATMAN_IV)]
+IF             Neighbor              last-seen
+wlp4s0         aa:bb:cc:dd:ee:01    0.392s
+wlp4s0         aa:bb:cc:dd:ee:02    1.204s
