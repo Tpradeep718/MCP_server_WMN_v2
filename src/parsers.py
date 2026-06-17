@@ -175,10 +175,14 @@ def parse_batctl_neighbors(raw: str) -> list:
             continue
         parts = line.split()
         if len(parts) >= 3:
+            try:
+                last_seen = float(parts[2].replace('s', ''))
+            except ValueError:
+                continue
             neighbors.append({
                 "outgoing_interface": parts[0],
                 "neighbor_mac":       parts[1],
-                "last_seen_seconds":  float(parts[2].replace('s', ''))
+                "last_seen_seconds":  last_seen
             })
     return neighbors
 

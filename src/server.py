@@ -109,8 +109,10 @@ def get_interface_config(interface: str = ""):
 def list_neighbors(interface: str = ""):
     """List all batman-adv mesh neighbors with last-seen time"""
     iface  = interface or MESH
-    result = run_cmd(["sudo", "batctl", "meshif", iface, "n"])
+    result = run_cmd(["sudo", "-n", "batctl", "meshif", iface, "n"])
     raw    = result["stdout"] + result["stderr"]
+    if "password is required" in raw:
+        return {"neighbors": [], "error": "sudo requires password — configure passwordless sudo for batctl"}
     if result["error"] and "timed out" in result["error"]:
         return {"error": result["error"]}
     if "not present" in raw or "not a batman-adv" in raw:
@@ -148,7 +150,7 @@ def ping_neighbor(host: str, count: int = 0):
     rtt  = re.search(r'rtt min/avg/max/mdev = ([\d.]+)/([\d.]+)/([\d.]+)', out)
     sent = re.search(r'(\d+) packets transmitted', out)
     recv = re.search(r'(\d+) received', out)
-    return {
+    response = {
         "host":        host,
         "transmitted": int(sent.group(1)) if sent else n,
         "received":    int(recv.group(1)) if recv else 0,
@@ -158,6 +160,10 @@ def ping_neighbor(host: str, count: int = 0):
         "rtt_max_ms":  float(rtt.group(3)) if rtt else None,
     }
 
+    if response["loss_pct"] == 100.0:
+        response["note"] = "Host unreachable or all packets lost"
+
+    return response
 @mcp.tool()
 def set_wifi_channel(interface: str, channel: int, token: str):
     """Change Wi-Fi channel on mesh interface. Requires privilege token."""

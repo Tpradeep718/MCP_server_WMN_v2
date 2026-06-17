@@ -1,0 +1,2 @@
+2026-06-17T12:33:42.194160 set_wifi_channel interface=wlan0 channel=6 success=True
+2026-06-17T12:33:42.195114 set_wifi_channel interface=wlan0 channel=13 success=False

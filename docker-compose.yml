@@ -1,0 +1,10 @@
+services:
+  wmn-mcp:
+    build: .
+    container_name: wmn-mcp-server
+    network_mode: host
+    privileged: true
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./logs:/app/logs
+    restart: unless-stopped

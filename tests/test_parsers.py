@@ -202,3 +202,169 @@ class TestParseStationDump:
         assert parse_station_dump(STATION_DUMP)[1]["tx_loss_pct"] == 0.0
     def test_empty_returns_empty_list(self):
         assert parse_station_dump("") == []
+
+
+class TestParseBatctlNeighborsEdgeCases:
+
+    def test_malformed_line_skipped(self):
+        raw = """[B.A.T.M.A.N. adv 2023.3, MainIF/MAC: wlp4s0/00:00:00:00:00:00 (bat0 BATMAN_IV)]
+IF             Neighbor              last-seen
+wlp4s0         aa:bb:cc:dd:ee:01    0.392s
+garbage_line_here
+"""
+        result = parse_batctl_neighbors(raw)
+        assert len(result) == 1
+
+    def test_single_neighbor(self):
+        raw = """[B.A.T.M.A.N. adv]
+IF             Neighbor              last-seen
+wlp4s0         aa:bb:cc:dd:ee:01    0.392s
+"""
+        result = parse_batctl_neighbors(raw)
+        assert len(result) == 1
+        assert result[0]["neighbor_mac"] == "aa:bb:cc:dd:ee:01"
+
+    def test_whitespace_only_input(self):
+        assert parse_batctl_neighbors("   \n   \n  ") == []
+
+    def test_multiple_interfaces_mixed(self):
+        raw = """[B.A.T.M.A.N. adv]
+IF             Neighbor              last-seen
+wlp4s0         aa:bb:cc:dd:ee:01    0.392s
+wlan1          aa:bb:cc:dd:ee:02    2.500s
+"""
+        result = parse_batctl_neighbors(raw)
+        assert len(result) == 2
+        assert result[1]["outgoing_interface"] == "wlan1"
+
+
+class TestParseStationDumpEdgeCases:
+
+    def test_single_station_no_trailing_newline(self):
+        raw = """Station aa:bb:cc:dd:ee:01 (on wlp4s0)
+	signal:  	-65 dBm
+	tx bitrate:	54.0 MBit/s"""
+        result = parse_station_dump(raw)
+        assert len(result) == 1
+        assert result[0]["rssi_dbm"] == -65
+
+    def test_missing_tx_failed_field(self):
+        raw = """Station aa:bb:cc:dd:ee:01 (on wlp4s0)
+	tx packets:	100
+	signal:  	-60 dBm
+"""
+        result = parse_station_dump(raw)
+        # tx_failed missing -> loss should default to 0
+        assert result[0]["tx_loss_pct"] == 0.0
+
+    def test_three_stations(self):
+        raw = """Station aa:01 (on wlp4s0)
+	signal:  	-50 dBm
+Station aa:02 (on wlp4s0)
+	signal:  	-60 dBm
+Station aa:03 (on wlp4s0)
+	signal:  	-70 dBm
+"""
+        result = parse_station_dump(raw)
+        assert len(result) == 3
+
+    def test_whitespace_only_input(self):
+        assert parse_station_dump("   \n  ") == []
+
+    def test_error_string_returns_empty(self):
+        assert parse_station_dump("Error: device busy") == []
+
+
+class TestParseIpRouteEdgeCases:
+
+    def test_empty_routing_table(self):
+        assert parse_ip_route("") == []
+
+    def test_ipv6_route_parsed(self):
+        raw = "2001:db8::/32 dev eth0 proto kernel metric 256 pref medium"
+        result = parse_ip_route(raw)
+        assert len(result) == 1
+        assert result[0]["destination"] == "2001:db8::/32"
+        assert result[0]["dev"] == "eth0"
+
+    def test_route_with_no_metric(self):
+        raw = "192.168.1.0/24 dev eth0 proto kernel scope link src 192.168.1.5"
+        result = parse_ip_route(raw)
+        assert result[0]["metric"] is None
+
+    def test_multiple_routes_with_mixed_protocols(self):
+        raw = """default via 10.0.0.1 dev eth0 proto static metric 100
+10.0.0.0/24 dev eth0 proto kernel scope link src 10.0.0.5
+169.254.0.0/16 dev eth0 scope link metric 1000 linkdown"""
+        result = parse_ip_route(raw)
+        assert len(result) == 3
+        assert result[2]["status"] == "linkdown"
+
+    def test_whitespace_only_input(self):
+        assert parse_ip_route("   \n  \n") == []
+
+
+class TestParseIpStatsEdgeCases:
+
+    def test_empty_stats_returns_empty_list(self):
+        assert parse_ip_stats("") == []
+
+    def test_interface_with_no_traffic_data(self):
+        raw = """5: dummy0: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN
+    link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff
+"""
+        result = parse_ip_stats(raw)
+        assert len(result) == 1
+        assert result[0]["rx_bytes"] == 0
+        assert result[0]["tx_bytes"] == 0
+
+    def test_large_byte_counts_no_overflow(self):
+        raw = """2: eth0: <UP> mtu 1500 qdisc fq_codel state UP
+    link/ether aa:bb:cc:dd:ee:ff brd ff:ff:ff:ff:ff:ff
+    RX: bytes  packets  errors  dropped  missed  mcast
+    9999999999999 8888888 0 0 0 0
+    TX: bytes  packets  errors  dropped  carrier collsns
+    7777777777777 6666666 0 0 0 0
+"""
+        result = parse_ip_stats(raw)
+        assert result[0]["rx_bytes"] == 9999999999999
+        assert result[0]["tx_bytes"] == 7777777777777
+
+    def test_renamed_interface_altname_ignored(self):
+        raw = """2: eno1: <UP> mtu 1500 qdisc fq_codel state UP
+    link/ether aa:bb:cc:dd:ee:ff brd ff:ff:ff:ff:ff:ff
+    altname enp0s25
+    RX: bytes  packets  errors  dropped  missed  mcast
+    100 10 0 0 0 0
+    TX: bytes  packets  errors  dropped  carrier collsns
+    50 5 0 0 0 0
+"""
+        result = parse_ip_stats(raw)
+        assert len(result) == 1
+        assert result[0]["interface"] == "eno1"
+
+
+class TestParseIwconfigEdgeCases:
+
+    def test_empty_input(self):
+        assert parse_iwconfig("") == []
+
+    def test_all_interfaces_no_wireless(self):
+        raw = """lo        no wireless extensions.
+eth0      no wireless extensions.
+"""
+        assert parse_iwconfig(raw) == []
+
+    def test_essid_with_quotes(self):
+        raw = """wlan0     IEEE 802.11  ESSID:"HomeNetwork"
+          Mode:Managed  Access Point: AA:BB:CC:DD:EE:FF
+"""
+        result = parse_iwconfig(raw)
+        assert result[0]["essid"] == "HomeNetwork"
+
+    def test_frequency_parsed(self):
+        raw = """wlan0     IEEE 802.11  ESSID:"Test"
+          Mode:Managed  Frequency:2.437 GHz  Access Point: AA:BB:CC:DD:EE:FF
+"""
+        result = parse_iwconfig(raw)
+        assert result[0]["frequency_ghz"] == 2.437

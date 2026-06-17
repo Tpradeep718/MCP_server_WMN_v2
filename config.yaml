@@ -1,9 +1,9 @@
-eno1server:
+server:
   name: wmn-mcp
   transport: stdio
 
 network:
-  interface: en01
+  interface: eno1
   mesh_interface: bat0
   ping_count: 4
   command_timeout_seconds: 5
