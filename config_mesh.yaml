@@ -1,0 +1,16 @@
+server:
+  name: wmn-mcp
+  transport: stdio
+
+network:
+  interface: sta1-mp0
+  mesh_interface: bat0
+  ping_count: 4
+  command_timeout_seconds: 5
+
+security:
+  privilege_token: wmn-secret-2024
+  allow_write_operations: true
+
+logging:
+  level: INFO
