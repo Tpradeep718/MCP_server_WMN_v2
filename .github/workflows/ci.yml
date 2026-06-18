@@ -1,0 +1,8 @@
+# Note: tests/integration/ requires a live Mininet-WiFi mesh and sudo-level
+# network namespace access, which GitHub-hosted runners do not provide.
+# These tests use pytest's skipif marker (requires_mesh) to detect the
+# absence of a mesh interface and skip gracefully rather than fail — so
+# this pipeline only runs tests/ (unit tests with mocked subprocess calls).
+# Integration tests are run locally via:
+#   sudo python3 mininet/mesh_topo.py
+#   sta1 <venv>/bin/python3 -m pytest tests/integration/ -v
