@@ -226,7 +226,7 @@ if __name__ == "__main__":
 # ── Parser 6: iw station dump ───────────────────────────────────────────────
 def parse_station_dump(raw: str) -> list:
     """
-    Parses output of `iw dev wlp4s0 station dump`.
+    Parses output of `iw dev <interface> station dump`.
     Returns RSSI, TX/RX bitrate, and packet loss per connected peer.
     """
     import re

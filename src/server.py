@@ -9,7 +9,7 @@ from parsers import (
 def load_config(path="config.yaml"):
     default = {
         "server":   {"name": "wmn-mcp", "transport": "stdio"},
-        "network":  {"interface": "wlp4s0", "mesh_interface": "bat0",
+        "network":  {"interface": "sta1-mp0", "mesh_interface": "bat0",
                      "ping_count": 4, "command_timeout_seconds": 5},
         "security": {"privilege_token": "wmn-secret-2024",
                      "allow_write_operations": True},
